@@ -50,8 +50,24 @@ export default function SlideCard({
         cacheBust: true,
         backgroundColor: '#ffffff',
       })
+      const filename = `slide-${index + 1}.png`
+
+      // When running inside the claude.ai artifact preview, save through the
+      // download bridge; otherwise use a normal browser download link.
+      const claude = (globalThis as { claude?: { use?: (n: string) => Promise<unknown> } }).claude
+      if (claude?.use) {
+        const dl = (await claude.use('downloads')) as
+          | { save: (r: { filename: string; data: Blob }) => Promise<unknown> }
+          | null
+        if (dl) {
+          const blob = await (await fetch(dataUrl)).blob()
+          await dl.save({ filename, data: blob }).catch(() => {})
+          return
+        }
+      }
+
       const link = document.createElement('a')
-      link.download = `slide-${index + 1}.png`
+      link.download = filename
       link.href = dataUrl
       link.click()
     } catch (err) {
